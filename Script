@@ -2,10 +2,10 @@ local agent = script.Parent
 local humanoid = agent:WaitForChild("Humanoid")
 local rootPart = agent:WaitForChild("HumanoidRootPart")
 
--- TARGET
+-- TARGET (Agent will walk to this position from its spawn point)
 local targetPosition = Vector3.new(-17.513, -0.002, 23.701)
 
--- CYLINDER
+-- CYLINDER (Properties of the liquid column poured from the bucket may be edited here)
 local fluidPart = workspace:WaitForChild("FluidCylinder")
 fluidPart.Transparency = 1
 
@@ -15,7 +15,7 @@ local maxLength = 10
 -- REAL BUCKET
 local realBucket = workspace:WaitForChild("RealBucket")
 
--- ANIMATIONS
+-- ANIMATIONS 
 local function loadAnim(id)
 	local anim = Instance.new("Animation")
 	anim.AnimationId = "rbxassetid://" .. id
@@ -28,7 +28,7 @@ local pickupTrack = loadAnim(88592266448013)
 local hammerTrack = loadAnim(90133295019457)
 local swingTrack = loadAnim(83431117343681)
 
--- BUCKET SETUP
+-- BUCKET SETUP (This part of the script attaches the bucket model to the Agents hand and controls its visibility)
 local bucketTemplate = game.ReplicatedStorage:WaitForChild("Bucket")
 local bucket = bucketTemplate:Clone()
 bucket.Parent = agent
@@ -74,7 +74,7 @@ end
 setBucketVisible(false)
 
 
--- SLEDGEHAMMER SETUP 
+-- SLEDGEHAMMER SETUP (Same as code for the bucket setup. This code attaches the sledgehammer to the agents left hand)
 local hammerTemplate = game.ReplicatedStorage:WaitForChild("Sledgehammer")
 local hammer = hammerTemplate:Clone()
 hammer.Parent = agent
@@ -124,7 +124,7 @@ end
 
 setHammerVisible(false)
 
--- TILT
+-- TILT (Controls the tilting of the bucket by modifying the Motor6D joint over time)
 local function tiltBucket()
 	local startC0 = motor.C0
 	local endC0 = startC0 * CFrame.Angles(0, 0, math.rad(70))
@@ -141,7 +141,7 @@ local function tiltBucket()
 end
 
 
--- RETURN BUCKET TO UPRIGHT
+-- RETURN (Returns bucket to upright position)
 local function resetBucketTilt()
 	local startC0 = motor.C0
 
@@ -177,7 +177,7 @@ idleTrack:Stop()
 -- PICKUP
 pickupTrack:Play()
 
--- RESET BUCKET TILT
+-- RESET BUCKET TILT (Handles the timed events when the tilt angle is reset and the swapping of the real bucket in the workspace and the bucket in replicated storage takes place)
 task.delay(23, function()
 
 	print("Resetting bucket tilt")
@@ -215,7 +215,9 @@ task.delay(1.47, function()
 	end
 end)
 
--- MOLTEN METAL POURING
+-- MOLTEN METAL POURING 
+-- (This part of the script handles the extension of the liquid column cylinder and block1 and block2 which simulate the liquid accumulating in the mould.)
+-- (It also handles the retraction of the cylinder when pouring is finished.)
 task.delay(1.7, function()
 	
 		setBucketVisible(true)
@@ -322,7 +324,7 @@ task.delay(1.7, function()
 	
 		task.wait(30)
 
--- COOLING TRANSITION
+-- COOLING TRANSITION (This part of the script manages the cooling transition of block1 and block2, visually transitioning them from the red molten state to a cool, metallic gray.)
 
 		local transitionTime = 30
 
@@ -347,7 +349,7 @@ task.delay(1.7, function()
 		block2.Material = Enum.Material.Metal
 	
 	
--- HAMMER SEQUENCE
+-- HAMMER SEQUENCE (Handles the swapping of the RealHammer and the hammer in replicated storage)
 	
     hammerTrack:Play()
 
@@ -373,8 +375,9 @@ task.delay(1.7, function()
     wait(4.33)
 	swingTrack:Play()
 
--- HAMMER IMPACT AND DESTRUCTION OF MOLD
-
+-- HAMMER IMPACT AND DESTRUCTION OF MOLD 
+-- (Manages the impact and destruction effect of the hammer hitting the mould by making the original mould invisible and creating smaller pieces of it that fly out in different directions.)
+	
 	task.delay(5.4, function() 
 
 		print("Hammer impact")
@@ -419,7 +422,7 @@ task.delay(1.7, function()
 		end
 	end)
 
--- SWAP HAMMERS
+-- SWAP HAMMERS (Swaps hammers again)
 		task.delay(13, function()
 
 		local realHammer = workspace:FindFirstChild("RealSledgeHammer")
