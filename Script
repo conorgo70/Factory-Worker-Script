@@ -377,7 +377,7 @@ task.delay(1.7, function()
 
 	task.delay(5.4, function() 
 
-		print("HAMMER IMPACT")
+		print("Hammer impact")
 
 		local mould = workspace:FindFirstChild("Mould")
 		if mould and mould:IsA("UnionOperation") then
