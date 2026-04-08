@@ -1,0 +1,437 @@
+local agent = script.Parent
+local humanoid = agent:WaitForChild("Humanoid")
+local rootPart = agent:WaitForChild("HumanoidRootPart")
+
+-- TARGET
+local targetPosition = Vector3.new(-17.513, -0.002, 23.701)
+
+-- CYLINDER
+local fluidPart = workspace:WaitForChild("FluidCylinder")
+fluidPart.Transparency = 1
+
+local growSpeed = 1
+local maxLength = 10
+
+-- REAL BUCKET
+local realBucket = workspace:WaitForChild("RealBucket")
+
+-- ANIMATIONS
+local function loadAnim(id)
+	local anim = Instance.new("Animation")
+	anim.AnimationId = "rbxassetid://" .. id
+	return humanoid:LoadAnimation(anim)
+end
+
+local walkTrack = loadAnim(507777826)
+local idleTrack = loadAnim(507766388)
+local pickupTrack = loadAnim(88592266448013)
+local hammerTrack = loadAnim(90133295019457)
+local swingTrack = loadAnim(83431117343681)
+
+-- BUCKET SETUP
+local bucketTemplate = game.ReplicatedStorage:WaitForChild("Bucket")
+local bucket = bucketTemplate:Clone()
+bucket.Parent = agent
+
+if not bucket.PrimaryPart then
+	local found = bucket:FindFirstChildWhichIsA("BasePart")
+	if found then
+		bucket.PrimaryPart = found
+	else
+		error("Bucket has no BasePart!")
+	end
+end
+
+local bucketPart = bucket.PrimaryPart
+local bucketOffset = CFrame.new(0, -1, 0) * CFrame.Angles(math.rad(270), 0, 0)
+
+local hand = agent:FindFirstChild("RightHand") or agent:FindFirstChild("Right Arm")
+if not hand then error("No hand found!") end
+
+for _, v in ipairs(bucket:GetDescendants()) do
+	if v:IsA("BasePart") then
+		v.Anchored = false
+		v.CanCollide = false
+	end
+end
+
+bucket:SetPrimaryPartCFrame(hand.CFrame * bucketOffset)
+
+local motor = Instance.new("Motor6D")
+motor.Part0 = hand
+motor.Part1 = bucketPart
+motor.C0 = hand.CFrame:ToObjectSpace(bucketPart.CFrame)
+motor.Parent = hand
+
+local function setBucketVisible(state)
+	for _, v in ipairs(bucket:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.Transparency = state and 0 or 1
+		end
+	end
+end
+
+setBucketVisible(false)
+
+
+-- SLEDGEHAMMER SETUP 
+local hammerTemplate = game.ReplicatedStorage:WaitForChild("Sledgehammer")
+local hammer = hammerTemplate:Clone()
+hammer.Parent = agent
+
+
+if not hammer.PrimaryPart then
+	local found = hammer:FindFirstChildWhichIsA("BasePart")
+	if found then
+		hammer.PrimaryPart = found
+	else
+		error("Sledgehammer has no BasePart!")
+	end
+end
+
+local hammerPart = hammer.PrimaryPart
+
+
+local hammerOffset = CFrame.new(0, -0.2, -0.2) * CFrame.Angles(math.rad(270), 0, 0)
+
+
+local leftHand = agent:FindFirstChild("LeftHand") or agent:FindFirstChild("Left Arm")
+if not leftHand then error("No left hand found!") end
+
+for _, v in ipairs(hammer:GetDescendants()) do
+	if v:IsA("BasePart") then
+		v.Anchored = false
+		v.CanCollide = false
+	end
+end
+
+
+hammer:SetPrimaryPartCFrame(leftHand.CFrame * hammerOffset)
+
+local hammerMotor = Instance.new("Motor6D")
+hammerMotor.Part0 = leftHand
+hammerMotor.Part1 = hammerPart
+hammerMotor.C0 = leftHand.CFrame:ToObjectSpace(hammerPart.CFrame)
+hammerMotor.Parent = leftHand
+
+local function setHammerVisible(state)
+	for _, v in ipairs(hammer:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.Transparency = state and 0 or 1
+		end
+	end
+end
+
+setHammerVisible(false)
+
+-- TILT
+local function tiltBucket()
+	local startC0 = motor.C0
+	local endC0 = startC0 * CFrame.Angles(0, 0, math.rad(70))
+
+	local startTime = tick()
+
+	while tick() - startTime < 1 do
+		local alpha = (tick() - startTime)
+		motor.C0 = startC0:Lerp(endC0, alpha)
+		task.wait()
+	end
+
+	motor.C0 = endC0
+end
+
+
+-- RETURN BUCKET TO UPRIGHT
+local function resetBucketTilt()
+	local startC0 = motor.C0
+
+	local endC0 = startC0 * CFrame.Angles(0, 0, math.rad(-70))
+
+	local duration = 1
+	local startTime = tick()
+
+	while tick() - startTime < duration do
+		local alpha = (tick() - startTime) / duration
+		motor.C0 = startC0:Lerp(endC0, alpha)
+		task.wait()
+	end
+
+	motor.C0 = endC0
+end
+
+-- WALK
+walkTrack:Play()
+humanoid:MoveTo(targetPosition)
+humanoid.MoveToFinished:Wait()
+walkTrack:Stop()
+
+-- ROTATE
+humanoid.AutoRotate = false
+rootPart.CFrame = CFrame.new(rootPart.Position) * CFrame.Angles(0, math.rad(180), 0)
+
+-- IDLE
+idleTrack:Play()
+task.wait(3)
+idleTrack:Stop()
+
+-- PICKUP
+pickupTrack:Play()
+
+-- RESET BUCKET TILT
+task.delay(23, function()
+
+	print("Resetting bucket tilt")
+
+	resetBucketTilt()
+
+	task.wait(1)
+
+	print("Swapping buckets back")
+
+	local realBucket = workspace:FindFirstChild("RealBucket")
+	if realBucket then
+		for _, v in ipairs(realBucket:GetDescendants()) do
+			if v:IsA("BasePart") then
+				v.Transparency = 0
+			end
+		end
+	end
+
+	for _, v in ipairs(bucket:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.Transparency = 1
+		end
+	end
+
+end)
+
+task.delay(1.47, function()
+	if realBucket then
+		for _, v in ipairs(realBucket:GetDescendants()) do
+			if v:IsA("BasePart") then
+				v.Transparency = 1
+			end
+		end
+	end
+end)
+
+-- MOLTEN METAL POURING
+task.delay(1.7, function()
+	
+		setBucketVisible(true)
+		tiltBucket()
+
+	task.wait(0.5)
+		local block1 = workspace:WaitForChild("Block1")
+		local block2 = workspace:WaitForChild("Block2")
+
+		local growSpeed = 0.018
+		local maxHeight = 0.34
+
+		local startSize1 = block1.Size
+		local startPos1 = block1.Position
+
+		local startSize2 = block2.Size
+		local startPos2 = block2.Position
+
+		local currentHeight = startSize1.Y
+
+		
+		task.spawn(function()
+			while currentHeight < maxHeight do
+				local dt = task.wait()
+
+				currentHeight += growSpeed * dt
+				if currentHeight > maxHeight then
+					currentHeight = maxHeight
+				end
+
+				block1.Size = Vector3.new(startSize1.X, currentHeight, startSize1.Z)
+				block1.Position = startPos1 + Vector3.new(0, currentHeight/2, 0)
+
+				block2.Size = Vector3.new(startSize2.X, currentHeight, startSize2.Z)
+				block2.Position = startPos2 + Vector3.new(0, currentHeight/2, 0)
+			end
+		end)
+
+		task.wait(0.8)
+		
+		if not fluidPart then
+			warn("FluidCylinder missing!")
+			return
+		end
+
+		fluidPart.Transparency = 0
+
+		local growSpeed = 1
+		local shrinkSpeed = 1
+		local maxLength = 10
+		local minLength = 0.1
+
+		local startSize = fluidPart.Size
+		local currentLength = startSize.X
+
+		local axis = fluidPart.CFrame.RightVector
+
+		local topPosition = fluidPart.Position + axis * (currentLength / 2)
+
+		print("Starting cylinder growth")
+
+		
+		while currentLength < maxLength do
+			local dt = task.wait()
+
+			currentLength += growSpeed * dt
+			if currentLength > maxLength then
+				currentLength = maxLength
+			end
+
+			fluidPart.Size = Vector3.new(currentLength, startSize.Y, startSize.Z)
+
+			local newCenter = topPosition - axis * (currentLength / 2)
+			fluidPart.Position = newCenter
+		end
+
+		print("Liquid fully poured")
+	
+	task.spawn(function()
+
+		task.wait(5)
+
+		print("Starting cylinder shrink")
+
+		local bottomPosition = fluidPart.Position - axis * (currentLength / 2)
+
+		while currentLength > minLength do
+			local dt = task.wait()
+
+			currentLength -= shrinkSpeed * dt
+			if currentLength < minLength then
+				currentLength = minLength
+			end
+
+			fluidPart.Size = Vector3.new(currentLength, startSize.Y, startSize.Z)
+
+			local newCenter = bottomPosition + axis * (currentLength / 2)
+			fluidPart.Position = newCenter
+		end
+
+		fluidPart.Transparency = 1
+	end)
+	
+	
+		task.wait(30)
+
+-- COOLING TRANSITION
+
+		local transitionTime = 30
+
+		local startColor1 = block1.Color
+		local startColor2 = block2.Color
+
+		local elapsed = 0
+
+		print("Starting cooling transition")
+
+		while elapsed < transitionTime do
+			local dt = task.wait()
+			elapsed += dt
+
+			local alpha = math.clamp(elapsed / transitionTime, 0, 1)
+
+		block1.Color = startColor1:Lerp(Color3.new(0,0,0), alpha)
+		block2.Color = startColor2:Lerp(Color3.new(0,0,0), alpha)
+		end
+
+		block1.Material = Enum.Material.Metal
+		block2.Material = Enum.Material.Metal
+	
+	
+-- HAMMER SEQUENCE
+	
+    hammerTrack:Play()
+
+	task.delay(2.57, function()
+
+		print("Swapping to hammer")
+
+		
+		setHammerVisible(true)
+
+		
+		local realHammer = workspace:FindFirstChild("RealSledgeHammer")
+		if realHammer then
+			for _, v in ipairs(realHammer:GetDescendants()) do
+				if v:IsA("MeshPart") then
+					v.Transparency = 1
+				end
+			end
+		end
+		
+	end)
+
+    wait(4.33)
+	swingTrack:Play()
+
+-- HAMMER IMPACT AND DESTRUCTION OF MOLD
+
+	task.delay(5.4, function() 
+
+		print("HAMMER IMPACT")
+
+		local mould = workspace:FindFirstChild("Mould")
+		if mould and mould:IsA("UnionOperation") then
+
+			
+			mould.Transparency = 1
+			mould.CanCollide = false
+
+			local pieces = 50 
+
+			for i = 1, pieces do
+				local part = Instance.new("Part")
+				part.Size = Vector3.new(0.3,0.3,0.3) 
+				part.Position = mould.Position + Vector3.new(
+					math.random(-2,2),
+					math.random(0,2),
+					math.random(-2,2)
+				)
+
+				part.Color = mould.Color
+				part.Material = mould.Material
+				part.Anchored = false
+				part.CanCollide = true
+				part.Parent = workspace
+
+				local bv = Instance.new("BodyVelocity")
+				bv.Velocity = Vector3.new(
+					math.random(-30,30),
+					math.random(20,50),
+					math.random(-30,30)
+				)
+				bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+				bv.Parent = part
+
+				game:GetService("Debris"):AddItem(bv, 0.2)
+				game:GetService("Debris"):AddItem(part, 5)
+				
+			end
+		end
+	end)
+
+-- SWAP HAMMERS
+		task.delay(13, function()
+
+		local realHammer = workspace:FindFirstChild("RealSledgeHammer")
+		if realHammer then
+			for _, v in ipairs(realHammer:GetDescendants()) do
+				if v:IsA("MeshPart") then
+					v.Transparency = 0
+				end
+			end
+		end
+
+		setHammerVisible(false)
+
+	end)
+end)
